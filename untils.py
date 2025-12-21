@@ -26,7 +26,7 @@ def generate_script(subject, video_length, creativity, api_key=None):
     )
 
     model = ChatOpenAI(
-        model_name="doubao-seed-1-6-251015",
+        model_name="doubao-seed-1-8-251215",
         temperature=creativity,
         openai_api_base="https://ark.cn-beijing.volces.com/api/v3",
         openai_api_key=api_key
@@ -39,15 +39,75 @@ def generate_script(subject, video_length, creativity, api_key=None):
 
     # 尝试搜索维基百科，如果失败则使用空字符串
     search_result = ""
+    print(f'🔍 开始搜索维基百科: {subject}')
+    
+    # 优先使用 wikipedia 库直接搜索（更可靠）
     try:
-        search = WikipediaAPIWrapper(lang='zh')
-        search_result = search.run(subject)
-        print(f'✅ 维基百科搜索成功')
+        import wikipedia
+        wikipedia.set_lang("zh")
+        # 先搜索页面标题
+        print(f'📚 使用 wikipedia 库搜索...')
+        search_pages = wikipedia.search(subject, results=3)
+        
+        if search_pages and len(search_pages) > 0:
+            # 尝试获取第一个匹配页面的内容
+            try:
+                page = wikipedia.page(search_pages[0], auto_suggest=False)
+                search_result = page.content
+                print(f'✅ 维基百科搜索成功，找到页面: {page.title}')
+                
+                # 限制搜索结果长度，避免过长
+                if len(search_result) > 2000:
+                    search_result = search_result[:2000] + "..."
+                    print(f'📝 搜索结果已截断至 2000 字符')
+            except wikipedia.exceptions.DisambiguationError as e:
+                # 如果是消歧义页面，使用第一个选项
+                print(f'⚠️ 发现消歧义页面，使用第一个选项: {e.options[0] if e.options else search_pages[0]}')
+                try:
+                    page = wikipedia.page(e.options[0] if e.options else search_pages[0], auto_suggest=False)
+                    search_result = page.content
+                    if len(search_result) > 2000:
+                        search_result = search_result[:2000] + "..."
+                except Exception:
+                    search_result = f"找到关于'{subject}'的维基百科页面，但无法获取内容"
+            except wikipedia.exceptions.PageError:
+                print(f'⚠️ 页面不存在，尝试使用 LangChain 搜索...')
+                search_result = ""
+            except Exception as page_error:
+                print(f'⚠️ 获取页面内容失败: {page_error}')
+                search_result = ""
+        else:
+            print(f'⚠️ 未找到匹配的维基百科页面')
+            search_result = ""
     except Exception as wiki_error:
-        print(f'⚠️ 维基百科搜索失败: {wiki_error}')
-        print(f'   将使用空搜索结果继续生成脚本')
-        # 继续执行，使用空字符串作为搜索结果
+        print(f'⚠️ wikipedia 库搜索失败: {type(wiki_error).__name__}: {wiki_error}')
+        search_result = ""
+    
+    # 如果 wikipedia 库搜索失败，尝试使用 LangChain 的 WikipediaAPIWrapper
+    if not search_result or len(search_result.strip()) == 0:
+        try:
+            print(f'🔄 尝试使用 LangChain WikipediaAPIWrapper 搜索...')
+            search = WikipediaAPIWrapper(lang='zh')
+            search_result = search.run(subject)
+            
+            # 检查搜索结果是否为空
+            if not search_result or len(search_result.strip()) == 0:
+                print(f'⚠️ LangChain 搜索返回空结果')
+                search_result = f"未找到关于'{subject}'的维基百科信息"
+            else:
+                print(f'✅ LangChain 维基百科搜索成功，结果长度: {len(search_result)} 字符')
+                # 限制搜索结果长度，避免过长
+                if len(search_result) > 2000:
+                    search_result = search_result[:2000] + "..."
+        except Exception as langchain_error:
+            print(f'⚠️ LangChain 维基百科搜索失败: {type(langchain_error).__name__}: {langchain_error}')
+            if not search_result or len(search_result.strip()) == 0:
+                search_result = f"未找到关于'{subject}'的维基百科信息"
+    
+    # 最终检查
+    if not search_result or len(search_result.strip()) == 0:
         search_result = f"未找到关于'{subject}'的维基百科信息"
+        print(f'⚠️ 所有维基百科搜索方法都失败，使用默认消息')
 
     script = script_chain.invoke({'title':title,'duration':video_length,'wiki_search':search_result}).content
     return search_result,title,script
