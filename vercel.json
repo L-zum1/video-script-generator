@@ -16,11 +16,6 @@
       "dest": "index.py"
     }
   ],
-  "functions": {
-    "index.py": {
-      "maxDuration": 60
-    }
-  },
   "env": {
     "PYTHON_VERSION": "3.9"
   }
