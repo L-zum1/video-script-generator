@@ -1,3 +1,4 @@
+# Vercel API函数
 from flask import Flask, send_from_directory, request, jsonify
 from flask_cors import CORS
 import os
@@ -10,19 +11,23 @@ except ImportError as e:
     print(f"❌ 导入 untils 模块失败: {e}")
     sys.exit(1)
 
+# 创建Flask应用
 app = Flask(__name__)
 CORS(app)
 
+# 主页路由
 @app.route('/')
 def index():
     """主页面"""
-    return send_from_directory('.', 'main.html')
+    return send_from_directory('..', 'main.html')
 
+# 健康检查端点
 @app.route('/api/health', methods=['GET'])
 def health():
     """健康检查端点"""
     return jsonify({'status': 'ok', 'message': '服务器运行正常'})
 
+# 生成脚本端点
 @app.route('/api/generate', methods=['POST'])
 def generate():
     """生成视频脚本的 API 端点"""
@@ -74,32 +79,11 @@ def generate():
     except Exception as e:
         return jsonify({'error': f'服务器错误: {str(e)}'}), 500
 
-if __name__ == '__main__':
-    # 检查环境变量
-    if not os.getenv('ARK_API_KEY'):
-        print("警告: 未设置 ARK_API_KEY 环境变量")
-        print("请设置: export ARK_API_KEY='your-api-key'")
-    
-    # 生产环境使用环境变量中的PORT，开发环境使用5001
-    port = int(os.environ.get('PORT', 5001))
-    
-    print(f"\n🚀 Flask 服务器正在启动...")
-    print(f"📡 监听地址: http://0.0.0.0:{port}")
-    print(f"🌐 本地访问: http://localhost:{port}")
-    
-    try:
-        app.run(debug=False, host='0.0.0.0', port=port)
-    except Exception as e:
-        print(f"❌ 服务器启动失败: {e}")
-        sys.exit(1)
+# Vercel入口点
+def handler(request):
+    """Vercel请求处理器"""
+    return app(request.environ, lambda status, headers: None)
 
-# Vercel无服务器环境不需要下面的代码
-# 但为了兼容性，我们保留一个简单的导出
-try:
-    # 尝试导入Vercel特定的模块
-    from vercel_wsgi import handle
-    # 如果成功导入，则使用Vercel的处理器
-    handler = handle
-except ImportError:
-    # 如果导入失败，使用Flask应用作为处理器
-    handler = app
+# 如果直接运行此文件，启动本地开发服务器
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
