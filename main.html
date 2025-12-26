@@ -596,6 +596,17 @@
             <form id="scriptForm">
                 <div class="form-grid">
                     <div class="input-group">
+                        <label class="input-label" for="apiKey">API密钥</label>
+                        <input 
+                            type="password" 
+                            id="apiKey" 
+                            name="apiKey" 
+                            class="input-field" 
+                            placeholder="请输入您的ARK API密钥（可选）"
+                        >
+                    </div>
+
+                    <div class="input-group">
                         <label class="input-label" for="videoLength">视频时长（分钟）</label>
                         <input 
                             type="number" 
@@ -799,6 +810,7 @@
 
             const formData = {
                 subject: subject,
+                api_key: document.getElementById('apiKey').value.trim(),
                 video_length: parseFloat(document.getElementById('videoLength').value),
                 creativity: parseFloat(document.getElementById('creativity').value)
             };

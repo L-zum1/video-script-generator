@@ -37,6 +37,7 @@ def generate():
         
         # 验证输入
         subject = data.get('subject', '').strip()
+        api_key = data.get('api_key', '').strip()
         video_length = data.get('video_length', 1)
         creativity = data.get('creativity', 0.7)
         
@@ -49,16 +50,17 @@ def generate():
         if not (0 < video_length <= 60):
             return jsonify({'error': '视频时长必须在 1 到 60 分钟之间'}), 400
         
-        # 检查API密钥
-        api_key = os.getenv('ARK_API_KEY')
-        if not api_key:
-            return jsonify({'error': 'API密钥未设置。请在环境变量中设置 ARK_API_KEY'}), 500
+        # 使用用户提供的API密钥或环境变量中的API密钥
+        effective_api_key = api_key or os.getenv('ARK_API_KEY')
+        if not effective_api_key:
+            return jsonify({'error': '请提供API密钥：可以通过前端输入或设置环境变量 ARK_API_KEY'}), 500
         
         # 调用生成函数
         search_result, title, script = generate_script(
             subject=subject,
             video_length=video_length,
-            creativity=creativity
+            creativity=creativity,
+            api_key=effective_api_key
         )
         
         return jsonify({
