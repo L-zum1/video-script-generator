@@ -79,10 +79,8 @@ def generate():
     except Exception as e:
         return jsonify({'error': f'服务器错误: {str(e)}'}), 500
 
-# Vercel入口点
-def handler(request):
-    """Vercel请求处理器"""
-    return app(request.environ, lambda status, headers: None)
+# Vercel入口点 - 使用Vercel推荐的格式
+# 不需要自定义handler，Vercel会自动处理Flask应用
 
 # 如果直接运行此文件，启动本地开发服务器
 if __name__ == '__main__':
